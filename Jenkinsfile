@@ -16,7 +16,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    image = docker.build("java-app:${env.BUILD_ID}")
+                    def image = docker.build("java-app:${env.BUILD_ID}")
                     env.DOCKER_IMAGE = image.id
                 }
             }
