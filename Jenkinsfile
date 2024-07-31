@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockercred')
-        DOCKERHUB_REPO = 'yashparmar04/day14'
+        DOCKER_CREDENTIALS_ID = 'dockercred'
     }
 
     stages {
@@ -16,8 +15,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    image = docker.build("java-app:${env.BUILD_ID}")
-                    env.DOCKER_IMAGE = image.id
+                    dockerImage = docker.build('yashparmar04/day14')
                 }
             }
         }
@@ -25,8 +23,8 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
-                        docker.image(env.DOCKER_IMAGE).push('latest')
+                    docker.withRegistry('https://index.docker.io/v1/', "$DOCKER_CREDENTIALS_ID") {
+                        dockerImage.push('latest')
                     }
                 }
             }
@@ -35,7 +33,7 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 script {
-                    sh 'docker run -d --name java-app -p 8085:8080 ' + env.DOCKERHUB_REPO + ':latest'
+                    dockerImage.run('-d -p 8085:80')
                 }
             }
         }
