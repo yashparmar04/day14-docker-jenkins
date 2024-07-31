@@ -1,13 +1,9 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:19.03.12'
-            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
 
     environment {
-        DOCKER_CREDENTIALS_ID = 'dockercred'
+        DOCKERHUB_CREDENTIALS = credentials('dockercred')
+        DOCKERHUB_REPO = 'yashparmar04/day14'
     }
 
     stages {
@@ -20,7 +16,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    dockerImage = docker.build('yashparmar04/day14')
+                    image = docker.build("java-app:${env.BUILD_ID}")
+                    env.DOCKER_IMAGE = image.id
                 }
             }
         }
@@ -28,8 +25,8 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', "$DOCKER_CREDENTIALS_ID") {
-                        dockerImage.push('latest')
+                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
+                        docker.image(env.DOCKER_IMAGE).push('latest')
                     }
                 }
             }
@@ -38,7 +35,7 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 script {
-                    dockerImage.run('-d -p 8085:80')
+                    sh 'docker run -d --name java-app -p 8085:8080 ' + env.DOCKERHUB_REPO + ':latest'
                 }
             }
         }
