@@ -1,50 +1,49 @@
 pipeline {
     agent any
+
     environment {
-        imageName = 'yashparmar04/day14'
-        tag = 'latest'
-        dockerImage = ''
-        containerName = 'f3b5eb30a9b5'
-        dockerHubCredentials = 'dockercred'
+        DOCKERHUB_CREDENTIALS = credentials('dockercred')
+        DOCKERHUB_REPO = 'yashparmar04/day14'
     }
 
     stages {
-        stage ('Checkout') {
+        stage('Clone Repository') {
             steps {
                 git url: 'https://github.com/yashparmar04/day14-docker-jenkins.git', branch: 'main'
             }
         }
-        stage ('Build Docker Image') {
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    dockerImage = docker.build"${imageName}:${tag}"
-                }
-            }
-        }
-        stage ('Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('', dockerHubCredentials) {
-                        dockerImage.push()
-                    }
-                }
-            }
-        }
-        stage ('Deploy Container') {
-            steps {
-                script {
-                    sh "docker run -d -p 5051:80 --name ${containerName} ${imageName}:${tag}"
+                    image = docker.build("java-app:${env.BUILD_ID}")
+                    env.DOCKER_IMAGE = image.id
                 }
             }
         }
 
-    }
-    post {
-        success {
-            echo 'Build and test succeeded!'
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
+                        docker.image(env.DOCKER_IMAGE).push('latest')
+                    }
+                }
+            }
         }
-        failure {
-            echo 'Build or test failed!'
+
+        stage('Deploy Container') {
+            steps {
+                script {
+                    sh 'docker run -d --name java-app -p 8085:8080 ' + env.DOCKERHUB_REPO + ':latest'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
         }
     }
 }
