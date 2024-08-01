@@ -2,22 +2,32 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockercred')
-        DOCKERHUB_REPO = 'yashparmar04/day14'
+        DOCKER_HUB_CREDENTIALS = credentials('dockercred')
+        DOCKER_IMAGE = 'yashparmar04/day14'
+        GIT_REPOSITORY = 'https://github.com/yashparmar04/day14-docker-jenkins.git'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git url: 'https://github.com/yashparmar04/day14-docker-jenkins.git', branch: 'main'
+                git branch: 'main', url: "${env.GIT_REPOSITORY}"
+            }
+        }
+
+        stage('Setup Docker Buildx') {
+            steps {
+                sh '''
+                    # Install Docker Buildx if not already installed
+                    docker buildx version || docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+                    docker buildx create --use || docker buildx use default
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    image = docker.build("java-app:${env.BUILD_ID}")
-                    env.DOCKER_IMAGE = image.id
+                    sh 'docker buildx build --platform linux/amd64 -t ${DOCKER_IMAGE} .'
                 }
             }
         }
@@ -25,8 +35,8 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
-                        docker.image(env.DOCKER_IMAGE).push('latest')
+                    docker.withRegistry('', env.DOCKER_HUB_CREDENTIALS) {
+                        sh 'docker buildx build --platform linux/amd64 --push -t ${DOCKER_IMAGE}:latest .'
                     }
                 }
             }
@@ -35,7 +45,8 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 script {
-                    sh 'docker run -d --name java-app -p 8085:8080 ' + env.DOCKERHUB_REPO + ':latest'
+                    // Example using Docker CLI to run the container
+                    sh 'docker run -d -p 8085:8080 ${DOCKER_IMAGE}:latest'
                 }
             }
         }
