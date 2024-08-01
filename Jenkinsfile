@@ -16,18 +16,15 @@ pipeline {
 
         stage('Setup Docker Buildx') {
             steps {
-                sh '''
-                    # Install Docker Buildx if not already installed
-                    docker buildx version || docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-                    docker buildx create --use || docker buildx use default
-                '''
+                sh 'docker buildx version || docker run --rm --privileged multiarch/qemu-user-static --reset -p yes'
+                sh  'docker buildx create --use || docker buildx use default'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t ${DOCKER_IMAGE} .'
+                    sh 'docker buildx build --platform linux/amd64 -t ${DOCKER_IMAGE} .'
                 }
             }
         }
