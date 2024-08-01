@@ -46,7 +46,7 @@ pipeline {
             steps {
                 script {
                     // Example using Docker CLI to run the container
-                    sh 'docker run -d -p 8085:8080 ${DOCKER_IMAGE}:latest'
+                    sh 'docker run -d -p 8080:8080 ${DOCKER_IMAGE}:latest'
                 }
             }
         }
