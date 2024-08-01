@@ -1,49 +1,50 @@
 pipeline {
     agent any
-
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockercred')
-        DOCKERHUB_REPO = 'yashparmar04/day14'
+        imageName = 'yashparmar04/day14'
+        tag = 'latest'
+        dockerImage = ''
+        containerName = 'day14-javaapp'
+        dockerHubCredentials = 'dockercred'
     }
 
     stages {
-        stage('Clone Repository') {
+        stage ('Checkout') {
             steps {
                 git url: 'https://github.com/yashparmar04/day14-docker-jenkins.git', branch: 'main'
             }
         }
-
-        stage('Build Docker Image') {
+        stage ('Build Docker Image') {
             steps {
                 script {
-                    image = docker.build("java-app:${env.BUILD_ID}")
-                    env.DOCKER_IMAGE = image.id
+                    dockerImage = docker.build"${imageName}:${tag}"
                 }
             }
         }
-
-        stage('Push Docker Image') {
+        stage ('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
-                        docker.image(env.DOCKER_IMAGE).push('latest')
+                    docker.withRegistry('', dockerHubCredentials) {
+                        dockerImage.push()
                     }
                 }
             }
         }
-
-        stage('Deploy Container') {
+        stage ('Deploy Container') {
             steps {
                 script {
-                    sh 'docker run -d --name java-app -p 8085:8080 ' + env.DOCKERHUB_REPO + ':latest'
+                    sh "docker run -d -p 5051:80 --name ${containerName} ${imageName}:${tag}"
                 }
             }
         }
-    }
 
+    }
     post {
-        always {
-            cleanWs()
+        success {
+            echo 'Build and test succeeded!'
+        }
+        failure {
+            echo 'Build or test failed!'
         }
     }
 }
