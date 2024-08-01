@@ -2,29 +2,22 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_CREDENTIALS = credentials('dockercred')
-        DOCKER_IMAGE = 'yashparmar04/day14'
-        GIT_REPOSITORY = 'https://github.com/yashparmar04/day14-docker-jenkins.git'
+        DOCKERHUB_CREDENTIALS = credentials('dockercred')
+        DOCKERHUB_REPO = 'yashparmar04/day14'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: "${env.GIT_REPOSITORY}"
-            }
-        }
-
-        stage('Setup Docker Buildx') {
-            steps {
-                sh 'docker buildx version || docker run --rm --privileged multiarch/qemu-user-static --reset -p yes'
-                sh  'docker buildx create --use || docker buildx use default'
+                git url: 'https://github.com/yashparmar04/day14-docker-jenkins.git', branch: 'main'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker buildx build --platform linux/amd64 -t ${DOCKER_IMAGE} .'
+                    image = docker.build("java-app:${env.BUILD_ID}")
+                    env.DOCKER_IMAGE = image.id
                 }
             }
         }
@@ -32,8 +25,8 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', env.DOCKER_HUB_CREDENTIALS) {
-                        sh 'docker buildx build --platform linux/amd64 --push -t ${DOCKER_IMAGE}:latest .'
+                    docker.withRegistry('', DOCKERHUB_CREDENTIALS) {
+                        docker.image(env.DOCKER_IMAGE).push('latest')
                     }
                 }
             }
@@ -42,8 +35,7 @@ pipeline {
         stage('Deploy Container') {
             steps {
                 script {
-                    // Example using Docker CLI to run the container
-                    sh 'docker run -d -p 8085:8080 ${DOCKER_IMAGE}:latest'
+                    sh 'docker run -d --name java-app -p 8085:8080 ' + env.DOCKERHUB_REPO + ':latest'
                 }
             }
         }
