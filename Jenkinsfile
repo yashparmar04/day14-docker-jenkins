@@ -4,7 +4,7 @@ pipeline {
         imageName = 'yashparmar04/day14'
         tag = 'latest'
         dockerImage = ''
-        containerName = 'day14-javaapp'
+        containerName = 'f3b5eb30a9b5'
         dockerHubCredentials = 'dockercred'
     }
 
